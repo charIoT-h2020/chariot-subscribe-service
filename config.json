@@ -3,7 +3,10 @@
         "host": "192.168.2.24",
         "enabled": true,
         "port": 5775,
-        "service": "alert-service"
+        "service": "subscriber-service"
+    },
+    "database": {
+        "url": "mongodb://192.168.2.24:27017"
     },
     "logging": {
         "version": 1,

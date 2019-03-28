@@ -1,5 +1,7 @@
 # Let's get this party started!
 import falcon
+from pymongo import MongoClient
+
 import falcon_jsonify
 
 from chariot_base.utilities import open_config_file
@@ -14,7 +16,8 @@ app = falcon.API(middleware=[
 ])
 
 opts = open_config_file()
-db = None
+client = MongoClient(opts.database['url'])
+db = client['chariot_subscribe_service']
 options_tracer = opts.tracer
 
 # Resources are represented by long-lived class instances

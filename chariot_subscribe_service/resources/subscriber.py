@@ -1,6 +1,7 @@
 import json
 import falcon
 import logging
+from bson.json_util import dumps, RELAXED_JSON_OPTIONS
 
 from chariot_base.utilities import Traceable
 
@@ -13,26 +14,36 @@ class SubscriberResource(Traceable):
         super(Traceable, self).__init__()
         self.tracer = None
         self.db = db
-        self.subscribers = {
-            'bms': {
-                'sensors': [
-                    'device_52806c75c3fd_Sensor04'
-                ]
-            }
-        }
 
     def on_get(self, req, resp, id=None):
+        span = self.start_span_from_request('get_subscriber', req)
         if id is None:
-           resp.json = self.subscribers
+            result = self.db.subscribers.find()
         else:
-            id = id.lower()
-            resp.json = self.subscribers[id]
+            self.set_tag(span, 'id', id)
+            result = self.db.subscribers.find_one({'id': id.lower()})
+
+        resp.body = dumps(result, json_options=RELAXED_JSON_OPTIONS)
+        self.close_span(span)
 
     def on_post(self, req, resp):
-        subscriber_id = req.get_json('id')
+        span = self.start_span_from_request('edit_subscriber', req)
+        subscriber_id = req.get_json('subscriber_id').lower()
         sensor_id = req.get_json('sensor_id')
 
-        rule = self.dispatcher.subscribers[subscriber_id]
-        rule.sensors.add(sensor_id)
+        subscriber = self.db.subscribers.find_one({'id': subscriber_id})
+        if subscriber is None:
+            self.set_tag(span, 'updated', False)
+            subscriber = {
+                'id': subscriber_id,
+                'sensors': [
+                    sensor_id
+                ]
+            }
+            result = self.db.subscribers.save(subscriber)
+        else:
+            self.set_tag(span, 'updated', True)
+            result = self.db.subscribers.update(subscriber, { "$addToSet": { "sensors": sensor_id } } )
 
-        resp.json = rule.dict()
+        resp.body = dumps(result, json_options=RELAXED_JSON_OPTIONS)
+        self.close_span(span)
