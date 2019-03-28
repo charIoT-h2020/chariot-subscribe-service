@@ -30,6 +30,7 @@ if options_tracer['enabled']:
 
 app.add_route('/subscriber', subscriber)
 app.add_route('/subscriber/{id}', subscriber)
+app.add_route('/subscriber/{id}/{sensor_id}', subscriber)
 
 if __name__ == '__main__':
     httpd = simple_server.make_server('127.0.0.1', 9000, app)
