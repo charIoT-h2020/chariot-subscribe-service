@@ -53,24 +53,28 @@ class SubscriberResource(Traceable):
             self.error(span, ex)
             raise
 
+    def on_put(self, req, resp):
+        self.create_or_update(req, resp)
+
     def on_post(self, req, resp):
+        self.create_or_update(req, resp)
+
+    def create_or_update(self, req, resp):
         span = self.start_span_from_request('edit_subscriber', req)
         subscriber_id = req.get_json('subscriber_id').lower()
-        sensor_id = req.get_json('sensor_id').lower()
+        sensor_ids = [sensor_id.lower() for sensor_id in req.get_json('sensor_ids')]
 
         subscriber = self.db.subscribers.find_one({'id': subscriber_id})
         if subscriber is None:
             self.set_tag(span, 'updated', False)
             subscriber = {
                 'id': subscriber_id,
-                'sensors': [
-                    sensor_id
-                ]
+                'sensors': sensor_ids
             }
             result = self.db.subscribers.save(subscriber)
         else:
             self.set_tag(span, 'updated', True)
-            result = self.db.subscribers.update(subscriber, { "$addToSet": { "sensors": sensor_id } } )
+            result = self.db.subscribers.update(subscriber, { "$addToSet": { "sensors": sensor_ids } } )
 
         resp.body = dumps(result, json_options=RELAXED_JSON_OPTIONS)
         self.close_span(span)
