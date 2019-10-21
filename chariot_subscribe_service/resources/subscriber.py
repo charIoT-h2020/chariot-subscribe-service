@@ -45,7 +45,6 @@ class SubscriberResource(Traceable):
                 result['sensor_id'] = sensor_id
                 result['status'] = status['nModified'] > 0
 
-
             resp.json = result
             self.log(span, result)
             self.close_span(span)
@@ -74,7 +73,9 @@ class SubscriberResource(Traceable):
             result = self.db.subscribers.save(subscriber)
         else:
             self.set_tag(span, 'updated', True)
-            result = self.db.subscribers.update(subscriber, { "$addToSet": { "sensors": sensor_ids } } )
+            sensor_ids.extend(subscriber['sensors'])
+            sensor_ids = list(set(sensor_ids))
+            result = self.db.subscribers.update(subscriber, { "$set": { "sensors": sensor_ids } } )
 
         resp.body = dumps(result, json_options=RELAXED_JSON_OPTIONS)
         self.close_span(span)
