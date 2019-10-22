@@ -17,8 +17,10 @@ class SubscriberResource(Traceable):
 
     def on_get(self, req, resp, id=None):
         span = self.start_span_from_request('get_subscriber', req)
-        if id is None:
+        logging.debug(f'SubscriberResource.on_get({id})')
+        if not id:
             result = self.db.subscribers.find()
+            logging.debug(f'Result: {result}')
         else:
             self.set_tag(span, 'id', id)
             result = self.db.subscribers.find_one({'id': id.lower()})
@@ -27,6 +29,7 @@ class SubscriberResource(Traceable):
         self.close_span(span)
 
     def on_delete(self, req, resp, id, sensor_id=None):
+        logging.debug(f'SubscriberResource.create_or_update()')
         try:
             span = self.start_span_from_request('get_subscriber', req)
             id = id.lower()
@@ -49,33 +52,44 @@ class SubscriberResource(Traceable):
             self.log(span, result)
             self.close_span(span)
         except Exception as ex:
+            logging.error(ex)
             self.error(span, ex)
             raise
 
     def on_put(self, req, resp):
+        logging.debug(f'SubscriberResource.create_or_update()')
         self.create_or_update(req, resp)
 
     def on_post(self, req, resp):
+        logging.debug(f'SubscriberResource.create_or_update()')
         self.create_or_update(req, resp)
 
     def create_or_update(self, req, resp):
-        span = self.start_span_from_request('edit_subscriber', req)
-        subscriber_id = req.get_json('subscriber_id').lower()
-        sensor_ids = [sensor_id.lower() for sensor_id in req.get_json('sensor_ids')]
+        try:
+            logging.debug(f'SubscriberResource.create_or_update()')
+            span = self.start_span_from_request('edit_subscriber', req)
+            subscriber_id = req.get_json('subscriber_id').lower()
+            sensor_ids = [sensor_id.lower() for sensor_id in req.get_json('sensor_ids')]
+            logging.debug(f'{sensor_ids}')
 
-        subscriber = self.db.subscribers.find_one({'id': subscriber_id})
-        if subscriber is None:
-            self.set_tag(span, 'updated', False)
-            subscriber = {
-                'id': subscriber_id,
-                'sensors': sensor_ids
-            }
-            result = self.db.subscribers.save(subscriber)
-        else:
-            self.set_tag(span, 'updated', True)
-            sensor_ids.extend(subscriber['sensors'])
-            sensor_ids = list(set(sensor_ids))
-            result = self.db.subscribers.update(subscriber, { "$set": { "sensors": sensor_ids } } )
+            subscriber = self.db.subscribers.find_one({'id': subscriber_id})
+            if subscriber is None:
+                self.set_tag(span, 'updated', False)
+                subscriber = {
+                    'id': subscriber_id,
+                    'sensors': sensor_ids
+                }
+                result = self.db.subscribers.save(subscriber)
+            else:
+                self.set_tag(span, 'updated', True)
+                sensor_ids.extend(subscriber['sensors'])
+                logging.debug(f'{sensor_ids}')
+                sensor_ids = list(set(sensor_ids))
+                result = self.db.subscribers.update(subscriber, { "$set": { "sensors": sensor_ids } } )
 
-        resp.body = dumps(result, json_options=RELAXED_JSON_OPTIONS)
-        self.close_span(span)
+            resp.body = dumps(result, json_options=RELAXED_JSON_OPTIONS)
+            self.close_span(span)
+        except Exception as ex:
+            logging.error(ex)
+            self.error(span, ex)
+            raise
