@@ -1,13 +1,14 @@
 # Let's get this party started!
 import falcon
-from pymongo import MongoClient
-
 import falcon_jsonify
 
-from chariot_base.utilities import open_config_file
+from pymongo import MongoClient
 
 from chariot_base.utilities import Tracer
+from chariot_base.utilities import open_config_file
+from chariot_subscribe_service import __version__, __service_name__
 from chariot_subscribe_service.resources.subscriber import SubscriberResource
+
 from wsgiref import simple_server
 
 # falcon.API instances are callable WSGI apps
@@ -20,10 +21,10 @@ client = MongoClient(opts.database['url'])
 db = client['chariot_subscribe_service']
 options_tracer = opts.tracer
 
-# Resources are represented by long-lived class instances
 subscriber = SubscriberResource(db)
 
 if options_tracer['enabled']:
+    options_tracer['service'] = f'{__service_name__}_{__version__}'
     tracer = Tracer(options_tracer)
     tracer.init_tracer()
     subscriber.inject_tracer(tracer)

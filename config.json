@@ -2,8 +2,7 @@
     "tracer": {
         "host": "localhost",
         "enabled": true,
-        "port": 5775,
-        "service": "subscriber-service"
+        "port": 5775
     },
     "database": {
         "url": "mongodb://localhost:27017"
