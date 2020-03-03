@@ -1,6 +1,7 @@
 # Let's get this party started!
 import falcon
 import falcon_jsonify
+import logging
 
 from pymongo import MongoClient
 
@@ -25,6 +26,7 @@ subscriber = SubscriberResource(db)
 
 if options_tracer['enabled']:
     options_tracer['service'] = f'{__service_name__}_{__version__}'
+    logging.debug(f'Enabling tracing for service "{__service_name__}_{__version__}"')
     tracer = Tracer(options_tracer)
     tracer.init_tracer()
     subscriber.inject_tracer(tracer)
